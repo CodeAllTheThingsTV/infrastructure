@@ -14,6 +14,7 @@ address = ":8080"
     [entryPoints.https.tls]
 
 [acme]
+caServer = "https://acme-staging.api.letsencrypt.org/directory"
 email = "codeallthethingstv@gmail.com"
 storage = "acme.json"
 entryPoint = "https"
