@@ -1,0 +1,27 @@
+defaultEntryPoints = ["http", "https"]
+[web]
+address = ":8080"
+  [web.auth.basic]
+  users = ["jimmy:$apr1$nmBfKfgQ$L6TU.7yfdwBG14Ty.iXTZ."]
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+      entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+    [entryPoints.https.tls]
+
+[acme]
+email = "codeallthethingstv@gmail.com"
+storage = "acme.json"
+entryPoint = "https"
+onHostRule = true
+onDemand = false    
+
+[acme.httpChallenge]
+entryPoint = "http"
+
+[docker]
+domain = "docker.localhost"

@@ -1,0 +1,109 @@
+version: '3'
+services:
+
+  traefik:
+    container_name: traefik
+    image: traefik:1.6.4-alpine
+    expose:
+      - 8080
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - proxy      
+    volumes:                              
+      - ./traefik/traefik.toml:/traefik.toml
+      - ./ssl/acme.json:/acme.json
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - traefik.frontend.rule=Host:monitor.codeallthethings.tv
+      - traefik.port=8080
+    environment:
+      - VIRTUAL_HOST=monitor.codeallthethings.tv
+    restart: always  
+
+  portainer:
+    container_name: portainer
+    image: portainer/portainer        
+    expose:
+      - 21025
+      - 9000
+    #ports:
+      #- "9000:9000"   
+    labels:
+      - traefik.backend=docker
+      - traefik.frontend.rule=Host:docker.codeallthethings.tv
+      - traefik.docker.network=proxy
+      - traefik.port=9000
+    networks:
+      - internal
+      - proxy                  
+    volumes:                              
+      - portainer-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: 
+      --admin-password '$$2y$$05$$yT0BB61KE2lIV9Oc2f7p5eXIKWFJgdOJY9Kc22SFn/iAa2dcYXSbe'     
+    environment:
+      - VIRTUAL_HOST=docker.codeallthethings.tv
+    restart: always
+
+  artifactory-db:
+    image: docker.bintray.io/postgres:9.5.2
+    container_name: artifactory-db
+    networks:
+      - internal      
+    expose:
+      - 5432
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=artifactory     
+      - POSTGRES_USER=artifactory
+      - POSTGRES_PASSWORD=tAFUzwyLm4RvF9ZGNH8mqrFgNT7pH
+    volumes:
+      - artifactory-db-data:/var/lib/postgresql/data
+    restart: always
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+
+  artifactory:
+    image: docker.bintray.io/jfrog/artifactory-oss:6.0.3
+    container_name: artifactory
+    labels:
+      - traefik.backend=artifactory
+      - traefik.frontend.rule=Host:artifactory.codeallthethings.tv
+      - traefik.docker.network=proxy
+      - traefik.port=8081
+    expose:
+      - 8081
+    networks:
+       - internal
+       - proxy  
+    volumes:
+      - artifactory-data:/var/opt/jfrog/artifactory
+    environment:
+      - DB_HOST=artifactory-db
+      - DB_TYPE=postgresql
+      - DB_USER=artifactory
+      - DB_PASSWORD=tAFUzwyLm4RvF9ZGNH8mqrFgNT7pH
+      - EXTRA_JAVA_OPTIONS=-Xmx1g
+    restart: always
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+
+networks:
+  proxy:
+    external: true
+  internal:
+    external: false
+
+volumes:         
+  portainer-data:
+  artifactory-data:
+  artifactory-db-data:
